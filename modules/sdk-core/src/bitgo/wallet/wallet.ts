@@ -2493,8 +2493,14 @@ export class Wallet implements IWallet {
   private async prebuildTransactionTss(params: PrebuildTransactionOptions = {}): Promise<PrebuildTransactionResult> {
     const reqId = params.reqId || new RequestTracer();
     this.bitgo.setRequestTracer(reqId);
-    const apiVersion =
-      this._wallet.type === 'custodial' || this.baseCoin.getMPCAlgorithm() === 'ecdsa' ? 'full' : 'lite';
+    if (
+      params.apiVersion === 'lite' &&
+      (this._wallet.type === 'custodial' || this.baseCoin.getMPCAlgorithm() === 'ecdsa')
+    ) {
+      throw new Error(`Custodial and ECDSA MPC algorithm must always use 'full' api version`);
+    }
+
+    const apiVersion = params.apiVersion || 'full';
 
     // Two options different implementations of fees seems to now be supported, for now we will support both to be backwards compatible
     // TODO(BG-59685): deprecate one of these so that we have a single way to pass fees

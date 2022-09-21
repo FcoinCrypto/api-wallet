@@ -168,7 +168,7 @@ export default class BaseTssUtils<KeyShare> extends MpcUtils implements ITssUtil
    */
   async prebuildTxWithIntent(
     params: PrebuildTransactionWithIntentOptions,
-    apiVersion: TxRequestVersion = 'lite',
+    apiVersion: TxRequestVersion = 'full',
     preview?: boolean
   ): Promise<TxRequest> {
     const intentOptions = this.populateIntent(this.baseCoin, params);
