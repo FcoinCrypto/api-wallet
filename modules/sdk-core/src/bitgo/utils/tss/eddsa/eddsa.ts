@@ -1,11 +1,13 @@
 /**
  * @prettier
  */
+import assert from 'assert';
 import * as bs58 from 'bs58';
 import * as openpgp from 'openpgp';
 import { Ed25519BIP32 } from '../../../../account-lib/mpc/hdTree';
 import Eddsa, { SignShare, GShare } from '../../../../account-lib/mpc/tss';
 import { AddKeychainOptions, Keychain, KeyType, CreateBackupOptions } from '../../../keychain';
+import { verifyWalletSignature } from '../../../tss/eddsa/eddsa';
 import { encryptText, getBitgoGpgPubKey, createShareProof, generateGPGKeyPair } from '../../opengpgUtils';
 import {
   createUserSignShare,
@@ -32,6 +34,46 @@ import { KeychainsTriplet } from '../../../baseCoin';
  */
 
 export class EddsaUtils extends baseTSSUtils<KeyShare> {
+  async verifyWalletSignatures(
+    userGpgKey: openpgp.SerializedKeyPair<string>,
+    bitgoKeychain: Keychain,
+    decryptedShare: string,
+    verifierIndex: 1 | 2
+  ): Promise<void> {
+    assert(bitgoKeychain.commonKeychain);
+    assert(bitgoKeychain.walletHSMGPGPublicKeySigs);
+
+    const bitgoGpgKey = await getBitgoGpgPubKey(this.bitgo);
+
+    const userKeyPub = await openpgp.readKey({ armoredKey: userGpgKey.publicKey });
+    const userKeyId = Buffer.from(userKeyPub.getFingerprint()).toString('hex').padStart(40, '0');
+
+    const walletSignatures = await openpgp.readKeys({ armoredKeys: bitgoKeychain.walletHSMGPGPublicKeySigs });
+    if (walletSignatures.length !== 2) {
+      throw new Error('Invalid wallet signatures');
+    }
+
+    await verifyWalletSignature({
+      walletSignature: walletSignatures[0],
+      commonKeychain: bitgoKeychain.commonKeychain,
+      userKeyId,
+      backupKeyId: userKeyId,
+      bitgoPub: bitgoGpgKey,
+      decryptedShare,
+      verifierIndex,
+    });
+
+    await verifyWalletSignature({
+      walletSignature: walletSignatures[1],
+      commonKeychain: bitgoKeychain.commonKeychain,
+      userKeyId,
+      backupKeyId: userKeyId,
+      bitgoPub: bitgoGpgKey,
+      decryptedShare,
+      verifierIndex,
+    });
+  }
+
   /**
    * Creates a Keychain containing the User's TSS signing materials.
    * We need to have the passphrase be optional to allow for the client to store their backup key on their premises
@@ -63,6 +105,8 @@ export class EddsaUtils extends baseTSSUtils<KeyShare> {
     }
 
     const bitGoToUserPrivateShare = await this.decryptPrivateShare(bitGoToUserShare.privateShare, userGpgKey);
+
+    await this.verifyWalletSignatures(userGpgKey, bitgoKeychain, bitGoToUserPrivateShare, 1);
 
     const bitgoToUser: YShare = {
       i: 1,
@@ -130,6 +174,8 @@ export class EddsaUtils extends baseTSSUtils<KeyShare> {
     }
 
     const bitGoToBackupPrivateShare = await this.decryptPrivateShare(bitGoToBackupShare.privateShare, userGpgKey);
+
+    await this.verifyWalletSignatures(userGpgKey, bitgoKeychain, bitGoToBackupPrivateShare, 2);
 
     const bitgoToBackup: YShare = {
       i: 2,
