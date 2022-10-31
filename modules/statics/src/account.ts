@@ -13,6 +13,7 @@ export interface AccountConstructorOptions {
   isToken: boolean;
   prefix?: string;
   suffix?: string;
+  baseUnit?: string;
   primaryKeyCurve: KeyCurve;
 }
 
@@ -396,7 +397,8 @@ export function account(
   primaryKeyCurve: KeyCurve = KeyCurve.Secp256k1,
   prefix = '',
   suffix: string = name.toUpperCase(),
-  isToken = false
+  isToken = false,
+  baseUnit = ''
 ) {
   return Object.freeze(
     new AccountCoin({
@@ -410,6 +412,7 @@ export function account(
       isToken,
       asset,
       primaryKeyCurve,
+      baseUnit,
     })
   );
 }

@@ -936,6 +936,7 @@ export abstract class BaseCoin {
   public readonly name: string;
   public readonly prefix?: string;
   public readonly suffix?: string;
+  public readonly baseUnit?: string;
   /*
     Property to help during migration of token names.
     Helps to find a coin/token with a different name than the current one
