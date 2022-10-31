@@ -297,6 +297,7 @@ export async function encryptNShare(
 
   const publicShare = Buffer.concat([
     Buffer.from(keyShare.pShare.y, 'hex'),
+    Buffer.from(nShare.v!, 'hex'),
     Buffer.from(keyShare.pShare.chaincode, 'hex'),
   ]).toString('hex');
   let privateShare;
@@ -367,8 +368,9 @@ export async function decryptNShare(encryptedNShare: DecryptableNShare, isbs58En
     j: encryptedNShare.nShare.j,
     n: encryptedNShare.nShare.n,
     y: encryptedNShare.nShare.publicShare.slice(0, 66),
+    v: encryptedNShare.nShare.publicShare.slice(66, 132),
     u: u,
-    chaincode: encryptedNShare.nShare.publicShare.slice(66, 130),
+    chaincode: encryptedNShare.nShare.publicShare.slice(132, 196),
   };
 
   return nShare;
