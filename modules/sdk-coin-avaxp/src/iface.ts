@@ -34,7 +34,7 @@ export interface TransactionPrebuild extends BaseTransactionPrebuild {
 }
 export interface AvaxpTransactionParams extends TransactionParams {
   type: string;
-  stakingOptions: {
+  stakingOptions?: {
     startTime: string;
     endTime: string;
     nodeID: string;

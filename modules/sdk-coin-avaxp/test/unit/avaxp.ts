@@ -453,6 +453,80 @@ describe('Avaxp', function () {
       validTransaction.should.equal(true);
     });
 
+    it('should succeed to verify export transaction', async () => {
+      const txPrebuild = {
+        txHex: EXPORT_P_2_C.halfsigntxHex,
+        txInfo: {},
+      };
+      const txParams = {
+        recipients: [
+          {
+            address: EXPORT_P_2_C.pAddresses.join('~'),
+            amount: EXPORT_P_2_C.amount,
+          },
+        ],
+        type: 'Export',
+        locktime: 0,
+        memo: {
+          value: EXPORT_P_2_C.memo,
+          type: 'text',
+        },
+      };
+
+      const isTransactionVerified = await basecoin.verifyTransaction({ txParams, txPrebuild });
+      isTransactionVerified.should.equal(true);
+    });
+
+    it('should fail verify export transaction with wrong amount', async () => {
+      const txPrebuild = {
+        txHex: EXPORT_P_2_C.halfsigntxHex,
+        txInfo: {},
+      };
+      const txParams = {
+        recipients: [
+          {
+            address: EXPORT_P_2_C.pAddresses.join('~'),
+            amount: '9999999',
+          },
+        ],
+        type: 'Export',
+        locktime: 0,
+        memo: {
+          value: EXPORT_P_2_C.memo,
+          type: 'text',
+        },
+      };
+
+      await basecoin
+        .verifyTransaction({ txParams, txPrebuild })
+        .should.be.rejectedWith('Tx total amount does not match with expected total amount field');
+    });
+
+    it('should fail verify export transaction with wrong address', async () => {
+      const txPrebuild = {
+        txHex: EXPORT_P_2_C.halfsigntxHex,
+        txInfo: {},
+      };
+      const txParams = {
+        recipients: [
+          {
+            address: EXPORT_P_2_C.pAddresses.join('abc'),
+            amount: EXPORT_P_2_C.amount,
+          },
+        ],
+        type: 'Export',
+        locktime: 0,
+        memo: {
+          value: 'Export AVAX from P-Chain to C-Chain and consume multisig output and create multisig atomic output',
+          type: 'text',
+        },
+      };
+
+      await basecoin
+        .verifyTransaction({ txParams, txPrebuild })
+        .should.be.rejectedWith('Tx outputs does not match with expected txParams');
+    });
+
     it('should fail verify transactions when have different type', async function () {
       const txParams = newTxParams();
       const txPrebuild = newTxPrebuild();

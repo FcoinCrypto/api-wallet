@@ -22,7 +22,9 @@ import {
   ExplainTransactionOptions,
   AvaxpVerifyTransactionOptions,
 } from './iface';
+import utils from './lib/utils';
 import _ from 'lodash';
+import BigNumber from 'bignumber.js';
 
 export class AvaxP extends BaseCoin {
   protected readonly _staticsCoin: Readonly<StaticsBaseCoin>;
@@ -77,16 +79,46 @@ export class AvaxP extends BaseCoin {
     }
     switch (explainedTx.type) {
       case TransactionType.AddDelegator:
+        break;
       case TransactionType.AddValidator:
         if (!params.txParams.recipients || params.txParams.recipients.length === 0) {
-          const filteredRecipients = [{ address: stakingOptions.nodeID, amount: stakingOptions.amount }];
+          const filteredRecipients = [{ address: stakingOptions?.nodeID, amount: stakingOptions?.amount }];
           const filteredOutputs = explainedTx.outputs.map((output) => _.pick(output, ['address', 'amount']));
 
           if (!_.isEqual(filteredOutputs, filteredRecipients)) {
             throw new Error('Tx outputs does not match with expected txParams');
           }
-          if (stakingOptions.amount !== explainedTx.outputAmount) {
+          if (stakingOptions?.amount !== explainedTx.outputAmount) {
             throw new Error('Tx total amount does not match with expected total amount field');
+          }
+        } else {
+          throw new Error('Stake Tx does not required recipients');
+        }
+        break;
+      case TransactionType.Export:
+        if (params.txParams.recipients) {
+          if (params.txParams.recipients.length > 1) {
+            throw new Error('Export Tx requires one recipient');
+          }
+          let totalAmount = new BigNumber(0);
+          for (const recipients of params.txParams.recipients) {
+            totalAmount = totalAmount.plus(recipients.amount);
+          }
+          if (!totalAmount.isEqualTo(explainedTx.outputAmount)) {
+            throw new Error('Tx total amount does not match with expected total amount field');
+          }
+
+          const filteredOutputs = explainedTx.outputs.map((output) => _.pick(output, ['address', 'amount']));
+          if (!_.isEqual(filteredOutputs, params.txParams.recipients)) {
+            throw new Error('Tx outputs does not match with expected txParams');
+          }
+
+          for (const output of filteredOutputs) {
+            const address = output.address;
+
+            if (!utils.isValidAddress(address)) {
+              throw new Error('Invalid p-chain address');
+            }
           }
         }
         break;
